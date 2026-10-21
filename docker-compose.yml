@@ -1,0 +1,52 @@
+name: gather
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: event_booking
+      POSTGRES_PASSWORD: event_booking
+      POSTGRES_DB: event_booking
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U event_booking"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://event_booking:event_booking@postgres:5432/event_booking
+      JWT_SECRET: change-this-development-secret-please
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin123!
+      SEED_DEMO_DATA: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./rel_event_csvs:/app/rel_event_csvs:ro
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - caddy_data:/data
+
+volumes:
+  postgres_data:
+  caddy_data:

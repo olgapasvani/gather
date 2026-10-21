@@ -1,0 +1,25 @@
+:443 {
+	tls /etc/caddy/tls/localhost.crt /etc/caddy/tls/localhost.key
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+:80 {
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
